@@ -17,21 +17,20 @@ func Home(c *gin.Context) {
 }
 
 type RequestBody struct {
-	Country string `json:"country"`
-	Tld     string `json:"tld"`
+	Asins   []string `json:"asins"`
+	Country string   `json:"country"`
+	Tld     string   `json:"tld"`
 }
 
 func GetInfo(c *gin.Context) {
-	asin := c.Param("ASIN")
-
-	if asin == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "ASIN is required"})
-		return
-	}
-
 	var body RequestBody
 	if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "Request body is not valid"})
+		return
+	}
+
+	if body.Asins == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "At least 1 ASIN is required"})
 		return
 	}
 
@@ -45,15 +44,23 @@ func GetInfo(c *gin.Context) {
 		return
 	}
 
+	var productArray []product.Product
+
 	// Fetch product data
-	productData, err := api.FetchProductData(c, asin, body.Country, body.Tld)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
-		return
+	for _, asin := range body.Asins {
+		var p product.Product
+
+		json, err := api.FetchProductData(c, asin, body.Country, body.Tld)
+		if err != nil {
+			c.Header("Content-Type", "application/json")
+			c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error(), "processed asins": productArray})
+			return
+		}
+
+		p.FormatProduct(asin, json)
+		productArray = append(productArray, p)
 	}
 
-	var p product.Product
-	p.FormatProduct(asin, productData)
 	c.Header("Content-Type", "application/json")
-	c.JSON(http.StatusOK, p)
+	c.JSON(http.StatusOK, productArray)
 }

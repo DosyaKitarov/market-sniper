@@ -26,7 +26,7 @@ func (app *application) routes() *gin.Engine {
 		rest.Home(c)
 	})
 
-	router.GET("/api/v1/getInfo/:ASIN", func(c *gin.Context) {
+	router.GET("/api/v1/getInfo", func(c *gin.Context) {
 		rest.GetInfo(c)
 	})
 

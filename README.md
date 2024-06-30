@@ -11,27 +11,39 @@ Golang part of backend for Market Sniper
 
 ## Endpoints
 
-### GET /api/v1/getInfo/{ASIN}
+### GET /api/v1/getInfo
 Returns the info about product
 
 curl --request GET \
-  --url http://{host}:{gateway_port}/v1/getInfo/{ASIN} \
+  --url http://{host}:{gateway_port}/v1/getInfo \
   --header 'Content-Type: application/json' \
   --header 'X-Api-Key: your_api_key' \
   --data '{
+    "ASIN": ["B07VGRJDFY", "B207Z4RZ9C"],
     "country": "US",
     "tld": "com"
   }'
 
 RESPONSE
 ```json
-{
+[
+  {
     "ASIN": "B07VGRJDFY",
     "Title": "Apple iPhone 11 Pro Max, 256GB, Midnight Green, Fully Unlocked (Renewed)",
     "Brand": "Apple",
     "Price": "999.99 $",
     "Previous_price": "1099.99 $",
     "Change_date": "2021-07-01T00:00:00Z"
-}
+  },
+  {
+    "ASIN": "B207Z4RZ9C",
+    "Title": "Apple iPhone 11 Pro Max, 256GB, Midnight Green, Fully Unlocked (Renewed)",
+    "Brand": "Apple",
+    "Price": "999.99 $",
+    "Previous_price": "1099.99 $",
+    "Change_date": "2021-07-01T00:00:00Z"
+  }
+]
+
 ```
 
