@@ -1,8 +1,9 @@
 package rest
 
 import (
-	"github.com/DosyaKitarov/market-sniper/api"
+	"github.com/DosyaKitarov/market-sniper/api/email"
 	product "github.com/DosyaKitarov/market-sniper/internal/app/product"
+	"github.com/DosyaKitarov/market-sniper/internal/pkg/logger"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
@@ -22,9 +23,12 @@ type RequestBody struct {
 	Tld     string   `json:"tld"`
 }
 
-func GetInfo(c *gin.Context) {
+func (s *Services) GetProducts(c *gin.Context) {
+	logger.Info(c, "GetProducts request received")
+
 	var body RequestBody
 	if err := c.ShouldBindJSON(&body); err != nil {
+		logger.Error(c, "GetProducts.ShouldBindJSON() error: ", err)
 		c.JSON(http.StatusBadRequest, gin.H{"message": "Request body is not valid"})
 		return
 	}
@@ -45,22 +49,42 @@ func GetInfo(c *gin.Context) {
 	}
 
 	var productArray []product.Product
-
-	// Fetch product data
-	for _, asin := range body.Asins {
-		var p product.Product
-
-		json, err := api.FetchProductData(c, asin, body.Country, body.Tld)
-		if err != nil {
-			c.Header("Content-Type", "application/json")
-			c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error(), "processed asins": productArray})
-			return
-		}
-
-		p.FormatProduct(asin, json)
-		productArray = append(productArray, p)
+	productArray, err := s.productService.InsertProducts(c, body.Asins, body.Country, body.Tld)
+	if err != nil {
+		logger.Error(c, "GetProducts.InsertProducts() error: ", err)
+		c.Header("Content-Type", "application/json")
+		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error(), "processed asins": productArray})
+		return
 	}
 
 	c.Header("Content-Type", "application/json")
 	c.JSON(http.StatusOK, productArray)
+}
+
+func (s *Services) GetCsv(c *gin.Context) error {
+	logger.Info(c, "GetCsv request received")
+
+	productArray, err := s.productService.GetAllProducts(c)
+	if err != nil {
+		logger.Error(c, "GetCsv.GetAllProducts() error: ", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return err
+	}
+
+	csvData, err := s.productService.ProductToCsv(c, productArray)
+	if err != nil {
+		logger.Error(c, "GetCsv.ProductToCsv() error: ", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return err
+	}
+
+	err = email.SendCSVViaGmail(csvData)
+	if err != nil {
+		logger.Error(c, "GetCsv.SendCSVViaGmail() error: ", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return err
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "CSV sent via email"})
+	return nil
 }

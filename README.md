@@ -11,11 +11,11 @@ Golang part of backend for Market Sniper
 
 ## Endpoints
 
-### GET /api/v1/getInfo
+### GET /api/v1/getProducts
 Returns the info about product
 
 curl --request GET \
-  --url http://{host}:{gateway_port}/v1/getInfo \
+  --url http://{host}:{gateway_port}/v1/getProducts \
   --header 'Content-Type: application/json' \
   --header 'X-Api-Key: your_api_key' \
   --data '{
